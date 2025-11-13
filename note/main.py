@@ -58,3 +58,6 @@ def delete_note(note_id: str):
             save_notes(notes)
             return {"message": "메모 삭제", "note": deleted_note}
     raise HTTPException(status_code=404, detail="메모를 찾을 수 없음")
+
+
+#주석
