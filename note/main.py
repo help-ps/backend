@@ -1,63 +1,55 @@
 from fastapi import FastAPI, HTTPException
 from models.note import Note
-import json
-import os
-import uuid
+import uuid ,os
+from pymongo import MongoClient
+from dotenv import load_dotenv
 
 app = FastAPI()
-DATA_PATH = "data/notes.json" #일단은 json에 저장
 
 
-def load_notes():
-    if not os.path.exists(DATA_PATH):
-        with open(DATA_PATH, "w") as f:
-            json.dump([], f)
-    with open(DATA_PATH, "r") as f:
-        return json.load(f)
 
+load_dotenv(dotenv_path=".env")  
+MONGO_URI = os.getenv("MONGO_URI")
+client = MongoClient(MONGO_URI)
+db = client.get_database("memo_save")
+notes_collection = db["notes"]
 
-def save_notes(notes):
-    with open(DATA_PATH, "w") as f:
-        json.dump(notes, f, indent=4)
-
+@app.get("/check_uri")
+def check_uri():
+    return {"MONGO_URI": os.getenv("MONGO_URI")} #uri 잘 가져오는지 보는 디버그용 코드 
 
 @app.post("/notes/")
 def create_note(note: Note):
-    notes = load_notes()
     new_note = note.dict()
-    new_note["id"] = str(uuid.uuid4())
-    notes.append(new_note)
-    save_notes(notes)
+    # new_note["id"] = str(uuid.uuid4())
+    notes_collection.insert_one(new_note)
     return {"message": "메모 저장", "note": new_note}
 
 
 @app.get("/notes/")
 def get_notes():
-    notes = load_notes()
-    return {"notes": notes}
+    try:
+        notes = list(notes_collection.find({}, {"_id": 0}))
+        return {"notes": notes}
+    except Exception as e:
+        return {"error": str(e)}
 
 
 @app.put("/notes/{note_id}")
 def update_note(note_id: str, updated_note: Note):
-    notes = load_notes()
-    for i, n in enumerate(notes):
-        if n["id"] == note_id:
-            notes[i] = updated_note.dict()
-            notes[i]["id"] = note_id
-            save_notes(notes)
-            return {"message": "메모 수정", "note": notes[i]}
-    raise HTTPException(status_code=404, detail="메모를 찾을 수 없음")
+    result = notes_collection.update_one(
+        {"id": note_id},
+        {"$set": updated_note.dict()}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="메모를 찾을 수 없음")
+    return {"message": "메모 수정", "note": updated_note.dict()}
 
 
 @app.delete("/notes/{note_id}") 
 def delete_note(note_id: str):
-    notes = load_notes()
-    for i, n in enumerate(notes):
-        if n["id"] == note_id:
-            deleted_note = notes.pop(i)
-            save_notes(notes)
-            return {"message": "메모 삭제", "note": deleted_note}
-    raise HTTPException(status_code=404, detail="메모를 찾을 수 없음")
+    result = notes_collection.delete_one({"id": note_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="메모를 찾을 수 없음")
+    return {"message": "메모 삭제", "note_id": note_id}
 
-
-#주석
