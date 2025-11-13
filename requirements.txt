@@ -1,0 +1,7 @@
+google-generativeai 
+Pillow
+jellyfish
+fastAPI
+uvicorn
+Pymongo
+passlib[argon2]
