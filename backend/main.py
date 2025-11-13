@@ -11,6 +11,7 @@ import base64
 import bcrypt
 import uuid
 import os
+import datetime
 
 load_dotenv()
 
@@ -103,7 +104,8 @@ async def signup(data: signupDTO):
     new_user = {
         "userID": data.userID,
         "password": hashed_password,
-        "streak": 0
+        "created_at": str(datetime.date.today()),
+        "streak": [0]
     }
     result = await users_collection.insert_one(new_user)
     return {"message": "User created successfully", "user_id": str(result.inserted_id)}
@@ -145,9 +147,22 @@ async def update_streak(data: streakDTO):
         )
     
     result = await users_collection.update_one(
-        {"userID": userID},
-        {"$inc": {"streak": 1}}
-    )
+    {"userID": userID},
+    [{
+        "$set": {
+            "streak": {
+                "$concatArrays": [{
+                    "$slice": [
+                        "$streak",
+                        0,
+                        {"$subtract": [{"$size": "$streak"}, 1]}
+                    ]},
+                    [1]
+                ]
+            }
+        }
+    }]
+)
 
     if result.matched_count == 0:
         raise HTTPException(
@@ -207,8 +222,18 @@ async def delete_note(data: DeleteNoteDTO):
     
     return {"message": "메모 삭제", "noteID": note_id}
 
+@app.post("/new_date")
+async def new_date():
+    result = await users_collection.update_many(
+        {},
+        {
+            "$push": {
+                "streak": 0
+            }
+        }
+    )
 
-
+    return {"message": f"Streaks updated for {result.modified_count} users"}
 
 if __name__ == "__main__":
     uvicorn.run(app, host="127.0.0.1", port=8000)
