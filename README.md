@@ -7,3 +7,8 @@ python -m venv venv
 .\venv\Scripts\activate
 pip install -r requirements.txt
 ```
+
+실행 방법
+```
+python .\backend\main.py
+```
