@@ -1,0 +1,13 @@
+google-generativeai 
+Pillow
+jellyfish
+fastAPI
+Pymongo
+uvicorn[standard]
+motor
+bcrypt
+passlib
+python-jose[cryptography]
+pydantic
+python-dotenv
+python-multipart
