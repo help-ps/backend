@@ -17,7 +17,7 @@ class signupDTO(BaseModel):
 
 class ImagePayload(BaseModel):
     filename: str
-    image_base64: str  # Base64로 인코딩된 이미지 문자열
+    image_base64: str
 
 class streakDTO(BaseModel):
     userID: str

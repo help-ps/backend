@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from model import Note, NewNoteDTO, UpdateNoteDTO, DeleteNoteDTO
+from note_model.py import Note, NewNoteDTO, UpdateNoteDTO, DeleteNoteDTO
 import uuid ,os
 from pymongo import MongoClient
 from dotenv import load_dotenv

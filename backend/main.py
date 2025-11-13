@@ -1,13 +1,16 @@
-import os
-import base64
-import bcrypt
-import uvicorn
-from dotenv import load_dotenv
-from jose import jwt
+from model import Token, LoginDTO, signupDTO, ImagePayload, streakDTO
+from note_model import Note, NewNoteDTO, UpdateNoteDTO, DeleteNoteDTO
+from fastapi import FastAPI, HTTPException, status
 from datetime import datetime, timedelta, timezone
 from motor.motor_asyncio import AsyncIOMotorClient
-from models import LoginDTO, Token, signupDTO, ImagePayload, streakDTO
-from fastapi import FastAPI, HTTPException, status
+from dotenv import load_dotenv
+from Search import tag_Search, Circle2Search
+from jose import jwt
+import uvicorn
+import base64
+import bcrypt
+import uuid
+import os
 
 load_dotenv()
 
@@ -23,6 +26,8 @@ client = AsyncIOMotorClient(MONGODB_URI)
 UserDB = client["UserDB"]
 users_collection = UserDB["user_db"]
 
+NoteDB = client.get_database("memo_save")
+notes_collection = NoteDB["notes"]
 
 def create_access_token(data: dict, expires_delta: timedelta | None = None):
     """
@@ -38,7 +43,6 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
-
 
 @app.get("/")
 async def main():
@@ -118,13 +122,11 @@ async def circle2_search(data : ImagePayload):
     with open(save_path, "wb") as f:
         f.write(image_data)
 
-    from Search import Circle2Search
     result = Circle2Search(save_path)
     return {"result": result}
 
 @app.get("/Search/tag_Search/{query}")
 async def tag_search(query: str, n: int = 5):
-    from Search import tag_Search
     result = tag_Search(query, n)
     return {"result": result}
 
@@ -154,6 +156,59 @@ async def update_streak(data: streakDTO):
         )
 
     return {"message": f"Streak updated successfully, now {user.get('streak')}"}
+
+@app.post("/create_note")
+async def create_note(data: NewNoteDTO):
+    if not data.title or not data.content or not data.userID:
+        raise HTTPException(status_code=400, detail="data 누락")
+    
+    user = await users_collection.find_one({"userID": data.userID})
+    if not user:
+        raise HTTPException(status_code=404, detail="사용자를 찾을 수 없음")
+    
+    new_note = {
+        "userID": data.userID,
+        "noteID": str(uuid.uuid4()),
+        "title": data.title,
+        "content": data.content
+    }
+
+    try:
+        result = notes_collection.insert_one(new_note)
+        # new_note["_id"] = str(result.inserted_id)
+        return {"message": "메모 저장 성공", "note": new_note}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="메모 저장 실패")
+
+@app.put("/notes/{note_id}")
+async def update_note(data : UpdateNoteDTO):
+    note = await notes_collection.find_one({"noteID": data.NoteID})
+    if not note:
+        raise HTTPException(status_code=404, detail="메모를 찾을 수 없음")
+
+    notes_collection.update_one(
+        {"noteID": data.NoteID}, 
+        {"$set": {              
+            "title": data.title,
+            "content": data.content
+        }}
+    )
+
+    return {"message": "메모 수정 성공"}
+
+@app.delete("/notes/{note_id}") 
+async def delete_note(data: DeleteNoteDTO):
+    note_id = data.NoteID
+    note = await notes_collection.find_one({"noteID": note_id})
+    if not note:
+        raise HTTPException(status_code=404, detail="메모를 찾을 수 없음")
+    
+    await notes_collection.delete_one({"noteID": note_id})
+    
+    return {"message": "메모 삭제", "noteID": note_id}
+
+
+
 
 if __name__ == "__main__":
     uvicorn.run(app, host="127.0.0.1", port=8000)
