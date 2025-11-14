@@ -26,16 +26,16 @@ app = FastAPI()
 
 origins = [
     "http://localhost",
-    "http://localhost:3000", # React, Vue 등 프론트엔드 개발 서버
+    "http://localhost:3000", 
     "http://localhost:8080", 
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,           # origins 목록에 있는 출처만 허용
-    allow_credentials=True,      # 쿠키(credential)를 포함한 요청 허용
-    allow_methods=["*"],           # 모든 HTTP 메소드 허용 (GET, POST, PUT 등)
-    allow_headers=["*"],           # 모든 HTTP 헤더 허용
+    allow_origins=["*"],         
+    allow_credentials=True,    
+    allow_methods=["*"],           
+    allow_headers=["*"],         
 )
 
 
