@@ -25,6 +25,3 @@ class streakDTO(BaseModel):
 class tagSearchDTO(BaseModel):
     query : str
     n : int
-
-class UserInfoDTO(BaseModel):
-    userID: str
