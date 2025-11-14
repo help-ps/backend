@@ -21,3 +21,10 @@ class ImagePayload(BaseModel):
 
 class streakDTO(BaseModel):
     userID: str
+
+class tagSearchDTO(BaseModel):
+    query : str
+    n : int
+
+class UserInfoDTO(BaseModel):
+    userID: str

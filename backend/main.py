@@ -1,4 +1,4 @@
-from model import Token, LoginDTO, signupDTO, ImagePayload, streakDTO
+from model import Token, LoginDTO, signupDTO, ImagePayload, streakDTO, tagSearchDTO, UserInfoDTO
 from note_model import Note, NewNoteDTO, UpdateNoteDTO, DeleteNoteDTO
 from fastapi import FastAPI, HTTPException, status
 from datetime import datetime, timedelta, timezone
@@ -127,9 +127,9 @@ async def circle2_search(data : ImagePayload):
     result = Circle2Search(save_path)
     return {"result": result}
 
-@app.get("/Search/tag_Search/{query}")
-async def tag_search(query: str, n: int = 5):
-    result = tag_Search(query, n)
+@app.get("/Search/tag_Search")
+async def tag_search(data : tagSearchDTO):
+    result = tag_Search(data.query, data.n)
     return {"result": result}
 
 @app.post("/streak/update")
@@ -234,6 +234,17 @@ async def new_date():
     )
 
     return {"message": f"Streaks updated for {result.modified_count} users"}
+
+@app.get("/UserInfo")
+async def UserInfo(data: UserInfoDTO):
+    user = await users_collection.find_one({"userID": data.userID})
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    return {"user_info": user}
+
 
 if __name__ == "__main__":
     uvicorn.run(app, host="127.0.0.1", port=8000)
